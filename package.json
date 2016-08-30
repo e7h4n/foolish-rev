@@ -1,0 +1,31 @@
+{
+  "name": "foolish-rev",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/perfectworks/foolish-rev.git"
+  },
+  "author": "perfectworks <perfectworks@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/perfectworks/foolish-rev/issues"
+  },
+  "homepage": "https://github.com/perfectworks/foolish-rev#readme",
+  "dependencies": {
+    "debug": "^2.2.0",
+    "del": "^2.2.2",
+    "gulp": "^3.9.1",
+    "gulp-rev": "^7.1.2",
+    "gulp-rev-collector": "^1.0.5",
+    "gulp-rev-css-url": "^0.1.0",
+    "gulp-tap": "^0.1.3",
+    "merge-stream": "^1.0.0",
+    "vinyl-paths": "^2.1.0"
+  }
+}
