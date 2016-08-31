@@ -20,5 +20,6 @@
   "globals": true,
   "browser": true,
   "-W117": true,
-  "-W097": true
+  "-W097": true,
+  "esversion": 6
 }

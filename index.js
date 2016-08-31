@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 'use strict';
 
-var gulp = require('gulp');
-var merge = require('merge-stream');
-var rev = require('gulp-rev');
-var revCssUrl = require('gulp-rev-css-url');
-var revCollector = require('gulp-rev-collector');
-var tap = require('gulp-tap');
-var debug = require('debug');
-var del = require('del');
-var vinylPaths = require('vinyl-paths');
+const gulp = require('gulp');
+const merge = require('merge-stream');
+const rev = require('gulp-rev');
+const revCollector = require('gulp-rev-collector');
+const tap = require('gulp-tap');
+const debug = require('debug');
+const del = require('del');
+const through2 = require('through2');
+const rework = require('gulp-rework');
+const cssUrl = require('rework-plugin-url');
+const path = require('path');
+const Url = require('url');
+const Vinyl = require('vinyl');
 
-var tapDebug = function (name, showContent) {
-    var logger = debug(name);
+const tapDebug = function (name, showContent) {
+    const logger = debug(name);
     return tap(function (file) {
         if (showContent) {
             logger(file.path, file.contents.toString().substr(0, 1024));
@@ -22,26 +26,83 @@ var tapDebug = function (name, showContent) {
     });
 };
 
+function relPath(base, filePath) {
+	if (filePath.indexOf(base) !== 0) {
+		return filePath.replace(/\\/g, '/');
+	}
+
+	const newPath = filePath.substr(base.length).replace(/\\/g, '/');
+
+	if (newPath[0] === '/') {
+		return newPath.substr(1);
+	}
+
+	return newPath;
+}
+
 
 gulp.task('build', function () {
-    var allFiles = gulp.src(['dist/**/*.*', '!dist/index.html'])
+    const manifest = {};
+    const revManifest = gulp.src(['dist/**/*.*', '!dist/index.html'])
         .pipe(tapDebug('src'))
         .pipe(rev())
+        .pipe(through2.obj(function (file, enc, callback) {
+            this.push(file);
+
+            const revisionedFile = relPath(file.base, file.path);
+            const originalFile = path.join(path.dirname(revisionedFile), path.basename(file.revOrigPath)).replace(/\\/g, '/');
+            manifest[originalFile] = revisionedFile;
+
+            callback();
+        }))
         .pipe(tapDebug('rev'))
-        .pipe(revCssUrl())
         .pipe(gulp.dest('./dist/'))
         .pipe(tapDebug('dist'))
         .pipe(tap(function (file) {
             del(file.revOrigPath);
             return file;
-        }));
+        }))
+        .pipe(rev.manifest())
+        .pipe(tapDebug('revManifest', true));
 
-    // 修改引用信息，增加 URL 前缀
-    var revManifest = allFiles.pipe(rev.manifest());
+    revManifest.pipe(tap(function () {
+        gulp.src('dist/**/*.css')
+            .pipe(rework(cssUrl(function (content, d) {
+                if (content.indexOf('http') === 0) {
+                    return content;
+                }
+
+                let cssFile = new Vinyl({
+                    base: 'dist/',
+                    path: this.position.source
+                });
+                let dirname = cssFile.dirname;
+
+                let suffix = '';
+                content = content.replace(/[#\?].*/, ($0) => {
+                    suffix = $0;
+                    return '';
+                });
+
+                let resourceFile = new Vinyl({
+                    base: 'dist/',
+                    path: path.resolve(dirname, content)
+                });
+
+                let revFilePath = manifest[resourceFile.relative];
+
+                let revFile = new Vinyl({
+                    base: dirname,
+                    path: path.resolve(process.cwd(), 'dist/', revFilePath)
+                });
+
+                return revFile.relative + suffix;
+            })))
+            .pipe(gulp.dest('dist/'));
+    }));
 
     // 通过 manifest 中配置的文件信息，对 html 中的引用进行替换
     merge(revManifest, gulp.src('dist/index.html'))
-        .pipe(tapDebug('revManifest', true))
         .pipe(revCollector()) // 引用替换
         .pipe(gulp.dest('./dist/'));
 });
