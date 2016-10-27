@@ -90,6 +90,9 @@ gulp.task('build', function () {
                 });
 
                 let revFilePath = manifest[resourceFile.relative];
+                if (!revFilePath) {
+                    throw new Error('invalid file path: ' + resourceFile.relative);
+                }
 
                 let revFile = new Vinyl({
                     base: dirname,
