@@ -68,7 +68,7 @@ gulp.task('build', function () {
     revManifest.pipe(tap(function () {
         gulp.src('dist/**/*.css')
             .pipe(rework(cssUrl(function (content, d) {
-                if (content.indexOf('http') === 0 || content.indexOf('data:') >= 0) {
+                if (content.indexOf('http') === 0 || content.indexOf('data:') === 0) {
                     return content;
                 }
 
